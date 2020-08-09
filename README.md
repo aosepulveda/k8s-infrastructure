@@ -40,6 +40,7 @@ helm upgrade -i flux fluxcd/flux --wait \
 --set registry.pollInterval=1m \
 --set git.pollInterval=1m \
 --set git.url=git@github.com:aosepulveda/k8s-infrastructure
+export FLUX_FORWARD_NAMESPACE=fluxcd
 ```
 
 Output:
