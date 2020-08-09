@@ -22,46 +22,7 @@ minikube status
 ```
 <https://kubernetes.io/docs/tasks/tools/install-minikube/>
 
-## Terraform
 
-### Installation
-
-```bash
-brew install terraform
-```
-
-### Output
-
-```base
-    ~/Doc/D/kubernetes/k8s-infrastructure/terraform  terraform apply "output.tfplan"                                                                  ✔  8s   22:14:41 
-google_container_cluster.primary: Creating...
-google_container_cluster.primary: Still creating... [10s elapsed]
-google_container_cluster.primary: Still creating... [20s elapsed]
-google_container_cluster.primary: Still creating... [30s elapsed]
-google_container_cluster.primary: Still creating... [40s elapsed]
-google_container_cluster.primary: Still creating... [50s elapsed]
-google_container_cluster.primary: Still creating... [1m0s elapsed]
-google_container_cluster.primary: Still creating... [1m10s elapsed]
-google_container_cluster.primary: Still creating... [1m20s elapsed]
-google_container_cluster.primary: Still creating... [1m30s elapsed]
-google_container_cluster.primary: Still creating... [1m40s elapsed]
-google_container_cluster.primary: Still creating... [1m50s elapsed]
-google_container_cluster.primary: Still creating... [2m0s elapsed]
-google_container_cluster.primary: Still creating... [2m10s elapsed]
-google_container_cluster.primary: Still creating... [2m20s elapsed]
-google_container_cluster.primary: Still creating... [2m30s elapsed]
-google_container_cluster.primary: Creation complete after 2m36s [id=projects/tyndorael-projects/locations/us-east1-d/clusters/mobile-apps]
-
-Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
-
-Outputs:
-
-cluster = mobile-apps
-cluster_ca_certificate = <sensitive>
-host = <sensitive>
-password = <sensitive>
-username = <sensitive>
-```
 
 ## GitOps Configuration
 
@@ -81,8 +42,27 @@ helm upgrade -i flux fluxcd/flux --wait \
 --set git.url=git@github.com:aosepulveda/k8s-infrastructure
 ```
 
+Output:
 
+```bash
+Release "flux" does not exist. Installing it now.
+NAME: flux
+LAST DEPLOYED: Sat Aug  8 18:29:03 2020
+NAMESPACE: fluxcd
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Get the Git deploy key by either (a) running
 
+  kubectl -n fluxcd logs deployment/flux | grep identity.pub | cut -d '"' -f2
+
+or by (b) installing fluxctl through
+https://docs.fluxcd.io/en/latest/references/fluxctl#installing-fluxctl
+and running:
+
+  fluxctl identity --k8s-fwd-ns fluxcd
+```
 
 ## Service Mesh
 
@@ -96,6 +76,7 @@ helm upgrade -i flux fluxcd/flux --wait \
 brew install linkerd
 linkerd check --pre # validate k8s cluster
 linkerd install | kubectl apply -f - # install
+linkerd check
 linkerd dashboard & # check dashboard
 ```
 
@@ -109,7 +90,32 @@ linkerd dashboard & # check dashboard
 brew install helm
 ```
 
-## Kong API Gateway
+## Helm Operator
+
+```bash
+helm upgrade -i helm-operator fluxcd/helm-operator --wait \
+--namespace fluxcd \
+--set git.ssh.secretName=flux-git-deploy \
+--set git.pollInterval=1m \
+--set chartsSyncInterval=1m \
+--set helm.versions=v3
+```
+
+## Flagger
+
+```bash
+helm repo add flagger https://flagger.app
+kubectl apply -f https://raw.githubusercontent.com/weaveworks/flagger/master/artifacts/flagger/crd.yaml
+helm upgrade -i flagger flagger/flagger --wait \
+--namespace linkerd \
+--set crd.create=false \
+--set metricsServer=http://linkerd-prometheus:9090 \
+--set meshProvider=linkerd
+```
+
+## Extras
+
+### Kong API Gateway
 
 ```bash
 helm repo add kong https://charts.konghq.com
@@ -142,4 +148,45 @@ for get PROXY_IP run
 
 ```bash
 export PROXY_IP=$(minikube service kong-1596641728-kong-proxy --url | head -1)
+```
+
+### Terraform
+
+#### Installation
+
+```bash
+brew install terraform
+```
+
+#### Output
+
+```base
+    ~/Doc/D/kubernetes/k8s-infrastructure/terraform  terraform apply "output.tfplan"                                                                  ✔  8s   22:14:41 
+google_container_cluster.primary: Creating...
+google_container_cluster.primary: Still creating... [10s elapsed]
+google_container_cluster.primary: Still creating... [20s elapsed]
+google_container_cluster.primary: Still creating... [30s elapsed]
+google_container_cluster.primary: Still creating... [40s elapsed]
+google_container_cluster.primary: Still creating... [50s elapsed]
+google_container_cluster.primary: Still creating... [1m0s elapsed]
+google_container_cluster.primary: Still creating... [1m10s elapsed]
+google_container_cluster.primary: Still creating... [1m20s elapsed]
+google_container_cluster.primary: Still creating... [1m30s elapsed]
+google_container_cluster.primary: Still creating... [1m40s elapsed]
+google_container_cluster.primary: Still creating... [1m50s elapsed]
+google_container_cluster.primary: Still creating... [2m0s elapsed]
+google_container_cluster.primary: Still creating... [2m10s elapsed]
+google_container_cluster.primary: Still creating... [2m20s elapsed]
+google_container_cluster.primary: Still creating... [2m30s elapsed]
+google_container_cluster.primary: Creation complete after 2m36s [id=projects/tyndorael-projects/locations/us-east1-d/clusters/mobile-apps]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+cluster = mobile-apps
+cluster_ca_certificate = <sensitive>
+host = <sensitive>
+password = <sensitive>
+username = <sensitive>
 ```
